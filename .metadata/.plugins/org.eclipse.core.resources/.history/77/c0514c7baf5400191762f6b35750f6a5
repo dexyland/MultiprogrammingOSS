@@ -1,0 +1,54 @@
+/**
+ * 
+ */
+
+/**
+ * @author Dejan
+ *
+ */
+
+interface wakeUpLTS {
+	void wakeMeUp();
+}
+
+public class OS {
+
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		Timer timer = new Timer();
+
+	}
+
+}
+
+class longTermScheduler {
+	public void wakeMeUp(){
+		System.out.println("Long term scheduler woke up!");
+	}
+}
+
+
+class Timer implements wakeUpLongT{
+	public long time; 
+	
+	public Timer(){
+		this.time = 0;
+	}
+	
+	public void register(wakeUpLTS function){
+		function.wakeMeUp();
+	}
+	
+	public void startTimer(){
+		this.time = 0;
+		
+		while(true){
+			time++;
+		}
+	}
+	
+}
+

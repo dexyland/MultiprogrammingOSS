@@ -1,0 +1,45 @@
+/**
+ * 
+ */
+
+/**
+ * @author Dejan
+ *
+ */
+
+interface wakeUpLongTermScheduler {
+	void wakeMeUp();
+}
+
+public class OS {
+
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+
+	}
+
+}
+
+
+
+class timer {
+	public long time;
+	public 
+	
+	public timer(){
+		this.time = 0;
+	}
+	
+	public void startTimer(){
+		this.time = 0;
+		
+		while(true){
+			time++;
+		}
+	}
+	
+}
+

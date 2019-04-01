@@ -1,0 +1,43 @@
+
+public class process {
+	private int id;
+	private int priority;
+	private int memory;
+	private int time;
+	
+	public process(int id){
+		this.id = id;
+	}
+	
+	public int getId(){
+		return this.id;
+	}
+	
+	public int getPriority(){
+		return this.id;
+	}
+	
+	public int getMemory(){
+		return this.id;
+	}
+	
+	public int getTime(){
+		return this.id;
+	}
+	
+	public void setId(int id){
+		this.id = id;
+	}
+	
+	public void setPriority(int priority){
+		this.priority = priority;
+	}
+	
+	public void setMemory(int memory){
+		this.memory = memory;
+	}
+	
+	public void setTime(int time){
+		this.time = time;
+	}
+}
