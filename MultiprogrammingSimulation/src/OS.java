@@ -10,51 +10,27 @@ import java.util.Queue;
  *
  */
 
-interface wakeUpLTS{
-	void wakeMeUp();
-	void startLTS();
+interface PQcallback{
+	void wakeUpLTS();
+	void startPrioritySystem();
 }
 
 public class OS {
 	public static void main(String[] args) {
 		Timer timer = new Timer();
-		wakeUpLTS callback = new LTS();
-		processQueue pq = new processQueue();
-		memory memoryController = new memory();
-		memoryController.startMemoryController();
-		timer.register(callback);
+		PQcallback pq = new processQueue();
+		
+		timer.register(pq);
 		timer.startTimer();
-		callback.startLTS();
 		pq.startPrioritySystem();
 	}
 
 }
 
-class LTS implements wakeUpLTS, Runnable{
-	private Thread t;
-	public void wakeMeUp(){
-		System.out.println("Long term scheduler woke up!");
-	}
-	
-	public void startLTS(){
-		System.out.println("Starting Long term scheduler!");
-	    if (t == null) {
-	    	t = new Thread (this, "LTSThread");
-	        t.start();
-	    }
-	}
-
-	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-		
-	}
-}
-
 class Timer implements Runnable{
 	public long time;
 	private Thread t;
-	private wakeUpLTS callback;
+	private PQcallback callback;
 	
 	public Timer(){
 		this.time = 0;
@@ -66,7 +42,9 @@ class Timer implements Runnable{
 	
 	/* no setter for the time since since it runs independently */
 	
-	public void register(wakeUpLTS function){
+	public void register(PQcallback function){
+		
+		/*  */
 		callback = function;
 		System.out.println("Registered callback!");
 	}
@@ -86,9 +64,12 @@ class Timer implements Runnable{
 		while(true){
 			time++;
 			
-			/* Waking up long term scheduler every 100ms */
+			/* Each iteration increases time representing the passing of 1mS. */
+			
+			/* Waking up long term scheduler every 100mS */
+			
 			if (time%100 == 0){
-				callback.wakeMeUp();
+				callback.wakeUpLTS();
 			}
 			
 			if (time == 10000){
@@ -99,44 +80,60 @@ class Timer implements Runnable{
 	}
 }
 
-class memory implements Runnable{
-	/* array of 256 members - 256MB */
-	public int locations[];
+class Memory implements Runnable{
+	
+	/* Array representing memory. Each location will store ID of a process 
+	 * occupying it, '0' if OS is occupying it or '-1' if location is free. */
+	
+	public int[] locations;
+	
+	/* Used to calculate if more than 80% of memory is full */
+	
 	public int memoryOccupied;
 	
 	private Thread t;
 	
-	public memory(){
-		/* Setting first 16 locations (16MB) to  0 - OS used
-		 *                        and others to -1 - free locations */
-		/*for (int i = 0; i < 256; i++){
+	public Memory(){
+		
+		/* array of 256 members - 256MB */
+		
+		this.locations = new int[256];
+		
+		/* Initializing memory and storing OS at first 16 locations (16MB) */
+		
+		for (int i = 0; i < 256; i++){
 			if (i <= 15){
-				locations[i] = 0;
+				this.locations[i] = 0;
 			}
 			else {
-				locations[i] = -1;
+				this.locations[i] = -1;
 			}
 			
-		}*/
-		memoryOccupied = 16;
+		}
+		
+		this.memoryOccupied = 16;
 	}
 	
 	public int memoryAvailable(){
-		return (int)Math.ceil(memoryOccupied/256.0)*100;
+		return (int)Math.ceil(this.memoryOccupied/256.0)*100;
 	}
 	
 	public void startMemoryController() {
 		System.out.println("Starting memory controller.");
 	    if (t == null) {
-	    	t = new Thread (this, "PQsystemThread");
+	    	t = new Thread (this, "MemoryThread");
 	        t.start();
 	    }
+	}
+	
+	public void requestMemory(int ID, int memory) {
+		
 	}
 
 	@Override
 	public void run() {
 		while(true){
-			System.out.println("MEMORYYYY");
+			System.out.println("Memory Occupied: " + this.memoryOccupied);
 		}
 		
 	}
@@ -144,44 +141,68 @@ class memory implements Runnable{
 
 class Process {
 	private int id;
-	private int priority;
+	private String status;
 	private int memory;
+	private int additionalMemory;
 	private int time;
+	private int timeElapsed;
 	
-	public Process(int id){
-		this.id = id;
+	
+	public Process(){
+		this.id = -1;
+		this.status = "waiting";
+		this.memory = -1;
+		this.additionalMemory = -1;
+		this.time = -1;
+		this.timeElapsed = 0;
 	}
 	
 	public int getId(){
 		return this.id;
 	}
 	
-	public int getPriority(){
-		return this.id;
+	public String getStatus(){
+		return this.status;
 	}
 	
 	public int getMemory(){
-		return this.id;
+		return this.memory;
+	}
+	
+	public int getAdditionalMemory(){
+		return this.additionalMemory;
 	}
 	
 	public int getTime(){
-		return this.id;
+		return this.time;
+	}
+	
+	public int getElapsedTime(){
+		return this.timeElapsed;
 	}
 	
 	public void setId(int id){
 		this.id = id;
 	}
 	
-	public void setPriority(int priority){
-		this.priority = priority;
+	public void setPriority(String status){
+		this.status = status;
 	}
 	
 	public void setMemory(int memory){
 		this.memory = memory;
 	}
 	
+	public void setAdditionalMemory(int memory){
+		this.additionalMemory = memory;
+	}
+	
 	public void setTime(int time){
 		this.time = time;
+	}
+	
+	public void setElapsedTime(int time){
+		this.timeElapsed = time;
 	}
 }
 
@@ -191,7 +212,11 @@ class Process {
  * short term scheduler takes first job from priority 0 queue if there is any.
  * System periodically takes care of upgrading and downgrading processes. */
 
-class processQueue implements Runnable{
+class processQueue implements PQcallback, Runnable{
+	
+	/**/
+	
+	private Memory memoryController;
 	
 	/* Priority queues that will be used for storing processes */
 	
@@ -205,11 +230,16 @@ class processQueue implements Runnable{
 	
 	public Queue<Process> inputQueue;
 
+	/* Queue for storing jobs that require memory from long term scheduler */
+	
+	public Queue<Process> noMemoryQueue;
+	
 	/* Thread class handling threading operations */
 	
 	private Thread t;
 	
-	/**/
+	/* Allow short term scheduler to get a job from queue. Prevents data race between queue 
+	 * scheduler which upgrades and downgrades processes priority and short term scheduler.*/
 	
 	private boolean queueAvailable;
 	
@@ -217,15 +247,36 @@ class processQueue implements Runnable{
 	
 	public processQueue(){
 		
+		/* Creating memory controller */
+		
+		memoryController = new Memory();
+		memoryController.startMemoryController();
+		
 		/* Creating priority queues that will be used for storing processes */
 		
 		this.priorityQueue0 = new LinkedList<>();
 		this.priorityQueue1 = new LinkedList<>();
 		this.priorityQueue2 = new LinkedList<>();
 		this.inputQueue = new LinkedList<>();
+		this.noMemoryQueue = new LinkedList<>();
 		queueAvailable = true;
 
 		System.out.println("Created priority queues!");
+	}
+	
+	public void wakeUpLTS() {
+		System.out.println("LTS woke up!");
+		
+		if (!this.noMemoryQueue.isEmpty()) {
+			if (this.memoryController.memoryAvailable() < 80) {
+				Process job = new Process();
+				
+				/* Removes the first process that entered */
+				job = this.noMemoryQueue.remove();
+				
+				this.memoryController.requestMemory(job.getId(), job.getMemory());
+			}
+		}
 	}
 	
 	public void startPrioritySystem() {
@@ -249,15 +300,20 @@ class processQueue implements Runnable{
 	public Process getJob() {
 		Process retProcess = null;
 		
-		/* If access to queues is enabled, first process that entered
-		 * priorityqueue0 is sent to short term scheduler if there is any */
+		/* If access to queues is enabled, job is taking following priority rule. */
 		
-		if (queueAvailable) {
-			if (!priorityQueue0.isEmpty()) {
-				retProcess = priorityQueue0.remove();
-				System.out.println("Job taken from queue!");
+		if (this.queueAvailable) {
+			if (!this.priorityQueue0.isEmpty()) {
+				retProcess = this.priorityQueue0.remove();
+				System.out.println("Job taken from queue 0!");
+			} else if (!this.priorityQueue1.isEmpty()) {
+				retProcess = this.priorityQueue1.remove();
+				System.out.println("Job taken from queue 1!");
+			} else if (!this.priorityQueue2.isEmpty()) {
+				retProcess = this.priorityQueue2.remove();
+				System.out.println("Job taken from queue 2!");
 			} else {
-				System.out.println("Priority queue is empty. No jobs to take!");
+				System.out.println("Priority queues are empty. No jobs to take!");
 			}
 		} else {
 			System.out.println("Access to queues denied!");
