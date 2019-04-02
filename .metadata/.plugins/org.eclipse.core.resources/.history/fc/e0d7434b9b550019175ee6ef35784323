@@ -1,3 +1,4 @@
+import java.awt.List;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -266,7 +267,7 @@ class Process {
 /* This class implements multiple level feedback queue which receives jobs 
  * from long term scheduler which are prioritized and stored in proper queue. 
  * short term scheduler takes first job from priority 0 queue if there is any.
- * System periodically takes care of upgrading and degrading processes. */
+ * System periodically takes care of upgrading and downgrading processes. */
 
 class processQueue implements PQcallback, Runnable{
 	
@@ -295,7 +296,7 @@ class processQueue implements PQcallback, Runnable{
 	private Thread t;
 	
 	/* Allow short term scheduler to get a job from queue. Prevents data race between queue 
-	 * scheduler which upgrades and degrades processes priority and short term scheduler.*/
+	 * scheduler which upgrades and downgrades processes priority and short term scheduler.*/
 	
 	private boolean queueAvailable;
 	
@@ -319,8 +320,6 @@ class processQueue implements PQcallback, Runnable{
 
 		System.out.println("Created priority queues!");
 	}
-	
-	/* LTS wakes up every 100mS. It check for available processes requesting memory */
 	
 	public void wakeUpLTS() {
 		System.out.println("LTS woke up!");
@@ -387,7 +386,7 @@ class processQueue implements PQcallback, Runnable{
 	}
 	
 	/* Short term scheduler takes a job from a queue if accessing queues is enabled. 
-	 * Priority queue system can disable access when upgrading and degrading processes. */
+	 * Priority queue system can disable access when upgrading and downgrading processes. */
 	
 	public Process getJob() {
 		Process retProcess = null;

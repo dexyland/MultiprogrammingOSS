@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -179,8 +178,6 @@ class Memory implements Runnable{
 			return false;
 		} else if (retieveBlock(ID, memory)) {
 			System.out.println("Memory request satisfied!");
-			
-			return true;
 		}
 		
 		return false;
@@ -266,7 +263,7 @@ class Process {
 /* This class implements multiple level feedback queue which receives jobs 
  * from long term scheduler which are prioritized and stored in proper queue. 
  * short term scheduler takes first job from priority 0 queue if there is any.
- * System periodically takes care of upgrading and degrading processes. */
+ * System periodically takes care of upgrading and downgrading processes. */
 
 class processQueue implements PQcallback, Runnable{
 	
@@ -288,14 +285,14 @@ class processQueue implements PQcallback, Runnable{
 
 	/* Queue for storing jobs that require memory from long term scheduler */
 	
-	public ArrayList<Process> noMemoryQueue; 
+	public Queue<Process> noMemoryQueue;
 	
 	/* Thread class handling threading operations */
 	
 	private Thread t;
 	
 	/* Allow short term scheduler to get a job from queue. Prevents data race between queue 
-	 * scheduler which upgrades and degrades processes priority and short term scheduler.*/
+	 * scheduler which upgrades and downgrades processes priority and short term scheduler.*/
 	
 	private boolean queueAvailable;
 	
@@ -314,61 +311,26 @@ class processQueue implements PQcallback, Runnable{
 		this.priorityQueue1 = new LinkedList<>();
 		this.priorityQueue2 = new LinkedList<>();
 		this.inputQueue = new LinkedList<>();
-		this.noMemoryQueue = new ArrayList<Process>();
-		this.queueAvailable = true;
+		this.noMemoryQueue = new LinkedList<>();
+		queueAvailable = true;
 
 		System.out.println("Created priority queues!");
 	}
-	
-	/* LTS wakes up every 100mS. It check for available processes requesting memory */
 	
 	public void wakeUpLTS() {
 		System.out.println("LTS woke up!");
 		System.out.println("Checking for processes waiting for memory...");
 		
-		/* Checking if there are any jobs in the queue waiting for memory */
-		int jobsNum = this.noMemoryQueue.size();
-		int jobsAdded = 0;
-		
-		for (int i = 0; i < jobsNum; i++) {
-			
-			/* Going through all processes waiting for memory and giving them memory
-			 * if there any available and putting them into priority queue 0 */
-			
-			if (!this.noMemoryQueue.isEmpty()) {
+		if (!this.noMemoryQueue.isEmpty()) {
+			if (this.memoryController.memoryAvailable() < 80) {
+				Process job = new Process();
 				
-				/* If less then 80% of memory is occupied and acquiring memory is
-				 * successful process will be put into a queue */
-			
-				if (this.memoryController.memoryAvailable() < 80) {
-					Process job = new Process();
-					
-					/* Removes the process from queue */
-					
-					job = this.noMemoryQueue.remove(i);
-					
-					if (this.memoryController.requestMemory(job.getId(), job.getMemory())) {
-						this.priorityQueue0.add(job);
-						
-						System.out.println("LTS added job to priority queue '0'");
-						System.out.println("Process " + job.getId() + " entered queue0");
-						
-						/* Adding a job to a priority queue0 */
-						
-						this.priorityQueue0.add(job);
-						jobsAdded++;
-					}
-				}
+				/* Removes the first process that entered */
+				job = this.noMemoryQueue.remove();
+				
+				this.memoryController.requestMemory(job.getId(), job.getMemory());
 			}
 		}
-		
-		if (jobsAdded == 1) {
-			System.out.println("LTS added 1 job in this season");  
-		} else {
-			System.out.println("LTS added " + jobsAdded + " jobs in this season.");
-		}
-		
-		System.out.println("LTS going to sleep.");
 	}
 	
 	public void startPrioritySystem() {
@@ -387,7 +349,7 @@ class processQueue implements PQcallback, Runnable{
 	}
 	
 	/* Short term scheduler takes a job from a queue if accessing queues is enabled. 
-	 * Priority queue system can disable access when upgrading and degrading processes. */
+	 * Priority queue system can disable access when upgrading and downgrading processes. */
 	
 	public Process getJob() {
 		Process retProcess = null;
