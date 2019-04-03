@@ -73,7 +73,7 @@ class Timer implements Runnable{
 				callback.wakeUpLTS();
 			}
 			
-			if (time == 1000000){
+			if (time == 10000){
 				break;
 			}
 		}
@@ -189,7 +189,7 @@ class Memory implements Runnable{
 	@Override
 	public void run() {
 		while(true){
-			///System.out.println("Memory Occupied: " + this.memoryOccupied);
+			System.out.println("Memory Occupied: " + this.memoryOccupied);
 		}
 		
 	}
@@ -281,6 +281,10 @@ class processQueue implements PQcallback, Runnable{
 	public ArrayList<Process> priorityQueue0;
 	public ArrayList<Process> priorityQueue1;
 	public ArrayList<Process> priorityQueue2;
+	
+	/* Queue for storing jobs received from long term scheduler  */
+	
+	public ArrayList<Process> inputQueue;
 
 	/* Queue for storing jobs that require memory from long term scheduler */
 	
@@ -311,6 +315,7 @@ class processQueue implements PQcallback, Runnable{
 		this.priorityQueue0 = new ArrayList<Process>();
 		this.priorityQueue1 = new ArrayList<Process>();
 		this.priorityQueue2 = new ArrayList<Process>();
+		this.inputQueue = new ArrayList<Process>();
 		this.noMemoryQueue = new ArrayList<Process>();
 		this.queueAvailable = true;
 		this.offset = 0;
@@ -377,8 +382,6 @@ class processQueue implements PQcallback, Runnable{
 		}
 		
 		System.out.println("LTS going to sleep.");
-		
-		jobUpgrader();
 	}
 	
 	public void startPrioritySystem() {
@@ -389,15 +392,11 @@ class processQueue implements PQcallback, Runnable{
 	    }
 	}
 	
-	/* Processes without memory are added to input queue
-	 * waiting to get memory from long term scheduler.
-	 * This function is executed to before simulation 
-	 * to load all jobs into queue waiting to get memory
-	 * from long term scheduler.  */
+	/* Long term scheduler call this function to add a job into a queue */
 	
 	public void addJob(Process P) {
-		System.out.println("Process " + P.getId() + " added to input queue.");
-		this.noMemoryQueue.add(P);
+		this.inputQueue.add(P);
+		System.out.println("Job added to queue!");
 	}
 	
 	/* Short term scheduler takes a job from a queue if accessing queues is enabled. 
@@ -429,7 +428,6 @@ class processQueue implements PQcallback, Runnable{
 	}
 	
 	/* Queue scheduler - manages job priorities  */
-	
 	private void checkJobs(){
 		if (this.queueAvailable) {
 			int size;
@@ -438,7 +436,7 @@ class processQueue implements PQcallback, Runnable{
 				size = this.priorityQueue0.size();
 				
 				for (int i = 0; i < size; i++) {
-					if (this.priorityQueue0.get(i).getElapsedTime() > offset + 0 || this.priorityQueue0.get(i).getElapsedTime() < 5) {
+					if (this.priorityQueue0.get(i).getElapsedTime() > offset + 0) {
 						this.priorityQueue1.add(this.priorityQueue0.remove(i));
 					}
 				}
@@ -446,84 +444,29 @@ class processQueue implements PQcallback, Runnable{
 				size = this.priorityQueue0.size();
 				
 				for (int i = 0; i < size; i++) {
-					if (this.priorityQueue1.get(i).getElapsedTime() > offset + 5 || this.priorityQueue0.get(i).getElapsedTime() < 9) {
+					if (this.priorityQueue1.get(i).getElapsedTime() > offset + 5) {
 						this.priorityQueue2.add(this.priorityQueue1.remove(i));
 					}
 				}
 			} else if (!this.priorityQueue2.isEmpty()) {
 			} else {
-				///System.out.println("Priority queues are empty. No jobs to check!");
+				System.out.println("Priority queues are empty. No jobs to take!");
 			}
 		} else {
 			System.out.println("Access to queues denied!");
 		}
 	}
 	
-	/* Periodically jobs need to be upgraded so we do not end up with empty queues 0 and 
-	 * 1 and all processes in queue 2 since jobs are executed sequentially in queue 2. */
-	
-	private void jobUpgrader() {
-		int topTime = 0;
-		int size;
-		
-		System.out.println("Job upgrader started.");
-		
-		if (this.queueAvailable) {
-			this.queueAvailable = false;
-			
-			if (!this.priorityQueue1.isEmpty()) {
-				size = this.priorityQueue1.size();
-				
-				for (int i = 0; i < size; i++) {
-					if (this.priorityQueue1.get(i).getElapsedTime() > topTime) {
-						topTime = this.priorityQueue1.get(i).getElapsedTime();
-					}
-					
-					this.priorityQueue0.add(this.priorityQueue1.remove(0));
-				}
-				
-				if (topTime > offset) {
-					offset = topTime;
-				}
-				
-				System.out.println(size + " jobs upgraded from queue1 to queue0");
-			}
-			
-			topTime = 0;
-			
-			if (!this.priorityQueue2.isEmpty()) {
-				size = this.priorityQueue2.size();
-				
-				for (int i = 0; i < size; i++) {
-					if (this.priorityQueue2.get(i).getElapsedTime() > topTime) {
-						topTime = this.priorityQueue2.get(i).getElapsedTime();
-					}
-					
-					this.priorityQueue0.add(this.priorityQueue2.remove(0));
-				}
-				
-				if (topTime > offset) {
-					offset = topTime;
-				}
-				
-				System.out.println(size + " jobs upgraded from queue2 to queue0");
-			}
-		}
-		
-		this.queueAvailable = true;
-		System.out.println("Job upgrader going to sleep");
-	}
-	
 	/* Print queue details */
 	
 	private void printQueueDetails() {
 		System.out.println("Priority queues information:");
-		System.out.println("Jobs waiting: " + noMemoryQueue.size());
+		System.out.println("Jobs waiting: " + inputQueue.size());
 		System.out.println("Queue0: " + priorityQueue0.size() + " jobs");
 		System.out.println("Queue1: " + priorityQueue1.size() + " jobs");
 		System.out.println("Queue2: " + priorityQueue2.size() + " jobs");
 		
-		int total = noMemoryQueue.size() + priorityQueue0.size()
+		int total = inputQueue.size() + priorityQueue0.size()
 			  + priorityQueue1.size() + priorityQueue2.size();
 		System.out.println("Total jobs in queues: " + total);
 	}

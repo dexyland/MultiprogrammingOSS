@@ -73,7 +73,7 @@ class Timer implements Runnable{
 				callback.wakeUpLTS();
 			}
 			
-			if (time == 1000000){
+			if (time == 10000){
 				break;
 			}
 		}
@@ -189,7 +189,7 @@ class Memory implements Runnable{
 	@Override
 	public void run() {
 		while(true){
-			///System.out.println("Memory Occupied: " + this.memoryOccupied);
+			System.out.println("Memory Occupied: " + this.memoryOccupied);
 		}
 		
 	}

@@ -73,7 +73,7 @@ class Timer implements Runnable{
 				callback.wakeUpLTS();
 			}
 			
-			if (time == 1000000){
+			if (time == 10000){
 				break;
 			}
 		}
@@ -189,7 +189,7 @@ class Memory implements Runnable{
 	@Override
 	public void run() {
 		while(true){
-			///System.out.println("Memory Occupied: " + this.memoryOccupied);
+			System.out.println("Memory Occupied: " + this.memoryOccupied);
 		}
 		
 	}
@@ -452,7 +452,7 @@ class processQueue implements PQcallback, Runnable{
 				}
 			} else if (!this.priorityQueue2.isEmpty()) {
 			} else {
-				///System.out.println("Priority queues are empty. No jobs to check!");
+				System.out.println("Priority queues are empty. No jobs to check!");
 			}
 		} else {
 			System.out.println("Access to queues denied!");
