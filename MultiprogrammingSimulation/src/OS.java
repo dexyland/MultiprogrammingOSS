@@ -12,7 +12,7 @@ import java.util.Queue;
  */
 
 interface PQcallback{
-	void wakeUpLTS();
+	void wakeUpLTS(long time);
 	void startPrioritySystem();
 }
 
@@ -70,10 +70,10 @@ class Timer implements Runnable{
 			/* Waking up long term scheduler every 100mS */
 			
 			if (time%100 == 0){
-				callback.wakeUpLTS();
+				callback.wakeUpLTS(time);
 			}
 			
-			if (time == 1000000){
+			if (time == 100){
 				break;
 			}
 		}
@@ -116,7 +116,7 @@ class Memory implements Runnable{
 	}
 	
 	public int memoryAvailable(){
-		return (int)Math.ceil(this.memoryOccupied/256.0)*100;
+		return (int)Math.ceil((256.0 - this.memoryOccupied)/256*100);
 	}
 	
 	public void startMemoryController() {
@@ -203,13 +203,21 @@ class Process {
 	private int time;
 	private int timeElapsed;
 	
-	
 	public Process(){
 		this.id = -1;
 		this.status = "waiting";
 		this.memory = -1;
 		this.additionalMemory = -1;
 		this.time = -1;
+		this.timeElapsed = 0;
+	}
+	
+	public Process(int id, int memory, int addmem, int time){
+		this.id = id;
+		this.status = "waiting";
+		this.memory = memory;
+		this.additionalMemory = addmem;
+		this.time = time;
 		this.timeElapsed = 0;
 	}
 	
@@ -259,6 +267,14 @@ class Process {
 	
 	public void setElapsedTime(int time){
 		this.timeElapsed = time;
+	}
+	
+	public void printProcess(){
+		System.out.println("Process: " + this.getId());
+		System.out.println("Memory required: " + this.getMemory());
+		System.out.println("Time required: " + this.getTime());
+		System.out.println("Status: " + this.getStatus());
+		System.out.println("Time elapsed: " + this.getElapsedTime());
 	}
 }
 
@@ -316,69 +332,85 @@ class processQueue implements PQcallback, Runnable{
 		this.offset = 0;
 
 		System.out.println("Created priority queues!");
+		
+		/* Creating processes and adding them to no memory queue */
+		
+		createProcesses();
+		
+		System.out.println("Created processes.");
 	}
 	
 	/* LTS wakes up every 100mS. It check for available processes requesting memory */
 	
-	public void wakeUpLTS() {
-		System.out.println("LTS woke up!");
-		System.out.println("Checking for processes waiting for memory...");
-		
-		/* Checking if there are any jobs in the queue waiting for memory */
-		int jobsNum = this.noMemoryQueue.size();
-		int jobsAdded = 0;
-		
-		for (int i = 0; i < jobsNum; i++) {
+	public void wakeUpLTS(long time) {
+		if (time%100 != 0){
+			this.checkJobs();
+		} else {
+			System.out.println("LTS woke up!");
+			System.out.println("Checking for processes waiting for memory...");
 			
-			/* Going through all processes waiting for memory and giving them memory
-			 * if there any available and putting them into priority queue 0 */
+			/* Checking if there are any jobs in the queue waiting for memory */
+			int jobsNum = this.noMemoryQueue.size();
+			int jobsAdded = 0;
 			
-			if (!this.noMemoryQueue.isEmpty()) {
+			System.out.println("Nomemory queue size: " + jobsNum);
+			
+			for (int i = 0; i < jobsNum; i++) {
 				
-				/* If less then 80% of memory is occupied and acquiring memory is
-				 * successful process will be put into a queue */
-			
-				if (this.memoryController.memoryAvailable() < 80) {
-					Process job = new Process();
+				/* Going through all processes waiting for memory and giving them memory
+				 * if there any available and putting them into priority queue 0 */
+				
+				if (!this.noMemoryQueue.isEmpty()) {
 					
-					/* Removes the process from queue */
-					
-					job = this.noMemoryQueue.remove(i);
-					
-					if (this.memoryController.requestMemory(job.getId(), job.getMemory())) {
-						this.priorityQueue0.add(job);
+					/* If less then 80% of memory is occupied and acquiring memory is
+					 * successful process will be put into a queue */
+				
+					if (this.memoryController.memoryAvailable() > 20) {
+						Process job = new Process();
 						
-						/* Sets queues status to unavailable so the job
-						 * can be added to queue without data race */
+						/* Removes the process from queue */
 						
-						this.queueAvailable = false;
+						job = this.noMemoryQueue.get(0);
 						
-						System.out.println("LTS added job to priority queue '0'");
-						System.out.println("Process " + job.getId() + " entered queue0");
-						
-						/* Adding a job to a priority queue0 */
-						
-						this.priorityQueue0.add(job);
-						jobsAdded++;
-						
-						/* Sets queues status back to available 
-						 * so the jobs can be taken from queue */ 
-						
-						this.queueAvailable = true;
+						if (this.memoryController.requestMemory(job.getId(), job.getMemory())) {
+							
+							/* Sets queues status to unavailable so the job
+							 * can be added to queue without data race */
+							
+							this.queueAvailable = false;
+							
+							/* Adding a job to a priority queue0 */
+							
+							this.priorityQueue0.add(job);
+							jobsAdded++;
+							this.memoryController.memoryOccupied += job.getMemory();
+							this.noMemoryQueue.remove(0);
+							
+							System.out.println("LTS added job to priority queue '0'");
+							System.out.println("Process " + job.getId() + " entered queue0");
+							
+	
+							
+							/* Sets queues status back to available 
+							 * so the jobs can be taken from queue */ 
+							
+							this.queueAvailable = true;
+						}
 					}
 				}
 			}
+			
+			if (jobsAdded == 1) {
+				System.out.println("LTS added 1 job in this season");  
+			} else {
+				System.out.println("LTS added " + jobsAdded + " jobs in this season.");
+			}
+			
+			System.out.println("LTS going to sleep.");
+			
+			//jobUpgrader();
+			printQueueDetails();
 		}
-		
-		if (jobsAdded == 1) {
-			System.out.println("LTS added 1 job in this season");  
-		} else {
-			System.out.println("LTS added " + jobsAdded + " jobs in this season.");
-		}
-		
-		System.out.println("LTS going to sleep.");
-		
-		jobUpgrader();
 	}
 	
 	public void startPrioritySystem() {
@@ -387,6 +419,14 @@ class processQueue implements PQcallback, Runnable{
 	    	t = new Thread (this, "PQsystemThread");
 	        t.start();
 	    }
+	}
+	
+	
+	public void createProcesses() {
+		for (int i = 0; i < 1000; i++) {
+			Process p = new Process(i*37, i*7%16, 0, i*3%8);
+			this.noMemoryQueue.add(p);
+		}
 	}
 	
 	/* Processes without memory are added to input queue
@@ -512,6 +552,7 @@ class processQueue implements PQcallback, Runnable{
 		
 		this.queueAvailable = true;
 		System.out.println("Job upgrader going to sleep");
+		
 	}
 	
 	/* Print queue details */
@@ -526,14 +567,20 @@ class processQueue implements PQcallback, Runnable{
 		int total = noMemoryQueue.size() + priorityQueue0.size()
 			  + priorityQueue1.size() + priorityQueue2.size();
 		System.out.println("Total jobs in queues: " + total);
+		
+		if (!this.noMemoryQueue.isEmpty()) {
+			System.out.println("Processes waiting for memory: ");
+			
+			/*for (int i = 0; i < this.noMemoryQueue.size(); i++) {
+				this.noMemoryQueue.get(i).printProcess();
+			}*/
+		}	
+		
 	}
 
 	@Override
 	public void run() {
 		System.out.println("Priority system active!");
 		
-		while(true){
-			checkJobs();
-		}
 	}
 }
