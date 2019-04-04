@@ -1,0 +1,150 @@
+package gui;
+
+import javax.swing.JFrame;
+
+import javax.swing.JLabel;
+
+import java.awt.Font;
+
+import javax.swing.JButton;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+
+public class GUI {
+	public JFrame frame;
+	private JLabel label;
+	private JLabel label_1;
+	private JLabel label_2;
+	private JLabel lblNewLabel_2;
+	private JLabel lblNewLabel_3;
+	private JLabel lblNewLabel_4;
+	private JLabel lblNewLabel_5;
+	public int button1 = 0;
+	public int button2 = 0;
+	public int button3 = 0;
+	/**
+	 * Create the application.
+	 */
+	public GUI() {
+		initialize();
+	}
+
+	/**
+	 * Initialize the contents of the frame.
+	 */
+	private void initialize() {
+		frame = new JFrame();
+		frame.getContentPane().setFont(new Font("Tahoma", Font.PLAIN, 20));
+		frame.setBounds(100, 100, 695, 593);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.getContentPane().setLayout(null);
+		
+		label = new JLabel("0");
+		label.setHorizontalAlignment(SwingConstants.LEFT);
+		label.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		label.setBounds(280, 20, 150, 50);
+		frame.getContentPane().add(label);
+		
+		JButton btnStart = new JButton("START");
+		btnStart.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		btnStart.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				button1 = 1;
+			}
+		});
+		btnStart.setBounds(20, 340, 150, 50);
+		frame.getContentPane().add(btnStart);
+		
+		JLabel lblTime = new JLabel("TIME :");
+		lblTime.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblTime.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblTime.setBounds(0, 20, 250, 50);
+		frame.getContentPane().add(lblTime);
+		
+		JLabel lblNewLabel = new JLabel("PROCESSES WAITING :");
+		lblNewLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblNewLabel.setBounds(0, 70, 250, 50);
+		frame.getContentPane().add(lblNewLabel);
+		
+		JLabel lblNewLabel_1 = new JLabel("PROCESSES IN MEMORY :");
+		lblNewLabel_1.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblNewLabel_1.setBounds(0, 120, 250, 50);
+		frame.getContentPane().add(lblNewLabel_1);
+		
+		label_1 = new JLabel("0");
+		label_1.setHorizontalAlignment(SwingConstants.LEFT);
+		label_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		label_1.setBounds(280, 70, 150, 50);
+		frame.getContentPane().add(label_1);
+		
+		label_2 = new JLabel("0");
+		label_2.setHorizontalAlignment(SwingConstants.LEFT);
+		label_2.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		label_2.setBounds(280, 120, 150, 50);
+		frame.getContentPane().add(label_2);
+		
+		lblNewLabel_2 = new JLabel("FINISHED PROCESSES :");
+		lblNewLabel_2.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblNewLabel_2.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblNewLabel_2.setBounds(0, 170, 250, 50);
+		frame.getContentPane().add(lblNewLabel_2);
+		
+		lblNewLabel_3 = new JLabel("0");
+		lblNewLabel_3.setHorizontalAlignment(SwingConstants.LEFT);
+		lblNewLabel_3.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblNewLabel_3.setBounds(280, 170, 150, 50);
+		frame.getContentPane().add(lblNewLabel_3);
+		
+		lblNewLabel_4 = new JLabel("MEMORY AVAILABLE :");
+		lblNewLabel_4.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblNewLabel_4.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblNewLabel_4.setBounds(0, 220, 250, 50);
+		frame.getContentPane().add(lblNewLabel_4);
+		
+		lblNewLabel_5 = new JLabel("0");
+		lblNewLabel_5.setHorizontalAlignment(SwingConstants.LEFT);
+		lblNewLabel_5.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblNewLabel_5.setBounds(280, 220, 150, 50);
+		frame.getContentPane().add(lblNewLabel_5);
+		
+		JButton btnNewButton = new JButton("PAUSE");
+		btnNewButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				button2 = 1;
+			}
+		});
+		btnNewButton.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		btnNewButton.setBounds(20, 400, 150, 50);
+		frame.getContentPane().add(btnNewButton);
+		
+		JButton btnNewButton_1 = new JButton("STOP");
+		btnNewButton_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		btnNewButton_1.setBounds(20, 460, 150, 50);
+		frame.getContentPane().add(btnNewButton_1);
+	}
+
+	public void changeTextTimer(long time){
+		this.label.setText(String.valueOf(time));
+	}
+	
+	public void changeTextWaiting(int size){
+		this.label_1.setText(String.valueOf(size));
+	}
+	
+	public void changeTextProcessing(int size){
+		this.label_2.setText(String.valueOf(size));
+	}
+	
+	public void changeTextFinished(int size){
+		this.lblNewLabel_3.setText(String.valueOf(size));
+	}
+	
+	public void changeTextMemory(int size){
+		this.lblNewLabel_5.setText(String.valueOf(size));
+	}
+}

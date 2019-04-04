@@ -1,0 +1,272 @@
+package operatingSystem;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+
+import operatingSystem.*;
+
+/**
+ * 
+ */
+
+/**
+ * @author Dejan
+ *
+ */
+
+
+
+
+
+
+interface CPUPipe {
+	boolean cpu2queue(Process p);
+	Process queue2cpu();
+}
+
+public class OS {
+	public static void main(String[] args) {
+		Timer timer = new Timer();
+		PQcallback pq = new processQueue();
+		CPUCycle cpu = new CPU();
+		
+		cpu.register(pq);
+		timer.registerqc(pq);
+		timer.registercc(cpu);
+		timer.startTimer();
+		pq.startPrioritySystem();
+		
+		
+	}
+
+}
+
+
+
+
+class Memory implements Runnable{
+	
+	/* Array representing memory. Each location will store ID of a process 
+	 * occupying it, '0' if OS is occupying it or '-1' if location is free. */
+	
+	public int[] locations;
+	
+	/* Used to calculate if more than 80% of memory is full */
+	
+	public int memoryOccupied;
+	
+	private Thread t;
+	
+	public Memory(){
+		
+		/* array of 256 members - 256MB */
+		
+		this.locations = new int[256];
+		
+		/* Initializing memory and storing OS at first 16 locations (16MB) */
+		
+		for (int i = 0; i < 256; i++){
+			if (i <= 15){
+				this.locations[i] = 0;
+			}
+			else {
+				this.locations[i] = -1;
+			}
+			
+		}
+		
+		this.memoryOccupied = 16;
+		this.startMemoryController();
+	}
+	
+	public int memoryAvailable(){
+		return (int)Math.ceil((256.0 - this.memoryOccupied)/256*100);
+	}
+	
+	public void startMemoryController() {
+		System.out.println("Starting memory controller.");
+	    if (t == null) {
+	    	t = new Thread (this, "MemoryThread");
+	        t.start();
+	    }
+	}
+	
+	/* Function used for checking if there is enough memory for the process 
+	 * and writing data of a process into memory if there is enough available */
+	
+	public Boolean retieveBlock(int ID, int memory) {
+		
+		/* Going through memory searching for long enough
+		 * contiguous block of available memory*/
+		
+		for (int i = 16; i < (255 - memory); i++) {
+			if (this.locations[i] == -1) {
+				int flag = 0;
+				
+				/* Checking if next 'memory' locations is available */
+				
+				for (int j = i+1; j < memory; j++){
+					if (this.locations[j] != -1) {
+						
+						/* sets flag to 1 if current location is not available */
+						
+						flag = 1;
+					}
+				}
+				
+				if (flag == 0) {
+					
+					/* Writing ID of process occupying memory locations */
+					
+					for (int k = i; k < i + memory; k++){
+						this.locations[k] = ID;
+					}
+					
+					System.out.println("Process " + ID + " acquired memory!");
+					
+					return true;
+				} else {
+					return false;
+				}
+			}
+		}
+		
+		System.out.println("Failed writing DATA! Process: " + ID);
+		
+		return false;
+	}
+	
+	public Boolean requestMemory(int ID, int memory) {
+		if (this.memoryOccupied + memory > 256) {
+			System.out.println("Not enough memory available!");
+			
+			return false;
+		} else if (retieveBlock(ID, memory)) {
+			System.out.println("Memory request satisfied!");
+			System.out.println("Memory available: " + this.memoryAvailable() + "%");
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public void freeMemory(int ID) {
+		System.out.println("Deleting job " + ID + " from memory");
+		for (int i = 16; i < 256; i++) {
+			if (this.locations[i] == ID) {
+				this.locations[i] = -1;
+				this.memoryOccupied--;
+			}
+		}
+		
+		System.out.println("Process " + ID + " removed from memory");
+		System.out.println("Memory available: " + this.memoryAvailable() + "%");
+	}
+
+	@Override
+	public void run() {
+		while(true){
+			///System.out.println("Memory Occupied: " + this.memoryOccupied);
+		}
+		
+	}
+}
+
+class Process {
+	private int id;
+	private String status;
+	private int memory;
+	private int additionalMemory;
+	private int time;
+	private long enterTime;
+	private int timeElapsed;
+	
+	public Process(){
+		this.id = -1;
+		this.status = "waiting";
+		this.memory = -1;
+		this.additionalMemory = -1;
+		this.time = -1;
+		this.enterTime = -1;
+		this.timeElapsed = 0;
+	}
+	
+	public Process(int id, int memory, int addmem, int time){
+		this.id = id;
+		this.status = "waiting";
+		this.memory = memory;
+		this.additionalMemory = addmem;
+		this.time = time;
+		this.enterTime = 0;
+		this.timeElapsed = 0;
+	}
+	
+	public int getId(){
+		return this.id;
+	}
+	
+	public String getStatus(){
+		return this.status;
+	}
+	
+	public int getMemory(){
+		return this.memory;
+	}
+	
+	public int getAdditionalMemory(){
+		return this.additionalMemory;
+	}
+	
+	public int getTime(){
+		return this.time;
+	}
+	
+	public long getEnterTime(){
+		return this.enterTime;
+	}
+	
+	public int getElapsedTime(){
+		return this.timeElapsed;
+	}
+
+	public void setStatus(String status){
+		this.status = status;
+	}
+	
+	public void setId(int id){
+		this.id = id;
+	}
+	
+	public void setPriority(String status){
+		this.status = status;
+	}
+	
+	public void setMemory(int memory){
+		this.memory = memory;
+	}
+	
+	public void setAdditionalMemory(int memory){
+		this.additionalMemory = memory;
+	}
+	
+	public void setTime(int time){
+		this.time = time;
+	}
+	
+	public void setEnterTime(long time){
+		this.enterTime = time;
+	}
+	
+	public void setElapsedTime(int time){
+		this.timeElapsed = time;
+	}
+	
+	public void printProcess(){
+		System.out.println("Process: " + this.getId());
+		System.out.println("Memory required: " + this.getMemory());
+		System.out.println("Time required: " + this.getTime());
+		System.out.println("Status: " + this.getStatus());
+		System.out.println("Time elapsed: " + this.getElapsedTime());
+	}
+}

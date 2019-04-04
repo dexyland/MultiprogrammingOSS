@@ -1,0 +1,12 @@
+import gui.*;
+import os.*;
+
+public class OS {
+
+	public static void main(String[] args) {
+		GUI window = new GUI();
+		
+
+	}
+
+}

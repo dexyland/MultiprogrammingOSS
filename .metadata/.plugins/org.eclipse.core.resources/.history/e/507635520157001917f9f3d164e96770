@@ -1,0 +1,72 @@
+package operatingSystem;
+
+public class Timer implements Runnable{
+	private int time;
+	private Thread t;
+	private PQcallback callback;
+	private CPUCycle cpucallback;
+	
+	public Timer(){
+		this.time = 0;
+	}
+	
+	public int getTime(){
+		return this.time;
+	}
+	
+	/* no setter for the time since since it runs independently */
+	
+	public void registerqc(PQcallback function){
+		
+		/*  */
+		callback = function;
+		System.out.println("Registered queue callback!");
+	}
+	
+	public void registercc(CPUCycle function){
+		
+		/*  */
+		cpucallback = function;
+		System.out.println("Registered cpu callback!");
+	}
+	
+	public void startTimer(){
+		System.out.println("Starting timer");
+	    if (t == null) {
+	    	t = new Thread (this, "timerThread");
+	        t.start();
+	    }
+	}
+
+	@Override
+	public void run() {
+		this.time = 0;
+		
+		while(true){
+			
+			/* Notify CPU of a new cycle */
+			
+			cpucallback.notifyCPU();
+			
+			/* Each iteration increases time representing the passing of 1mS. */
+			
+			/* Waking up long term scheduler every 100mS */
+			
+			if (time%10 == 0){
+				callback.wakeUpLTS(time);
+			}
+			
+			if (time == 100000){
+				break;
+			}
+			
+			try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			time++;
+		}
+		
+	}
+}

@@ -1,0 +1,37 @@
+import java.awt.EventQueue;
+
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+
+import operatingSystem.CPUCycle;
+import operatingSystem.PQcallback;
+import operatingSystem.Timer;
+import gui.*;
+///import operatingSystem.*;
+
+public class Main {
+	private Timer timer;
+	private PQcallback pq;
+	private CPUCycle cpu;
+	
+	Main(){
+		GUI window = new GUI();
+		window.frame.setVisible(true);
+	}
+
+	public static void main(String[] args) {
+		Main m = new Main();
+		
+		/*EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					GUI window = new GUI();
+					window.frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}*/
+	}
+}

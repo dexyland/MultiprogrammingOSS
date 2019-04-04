@@ -1,0 +1,60 @@
+package gui;
+
+import java.awt.EventQueue;
+
+import javax.swing.JFrame;
+
+import operatingSystem.*;
+
+import javax.swing.JLabel;
+
+import java.awt.Font;
+
+import javax.swing.JButton;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+
+public class GUI {
+	public JFrame frame;
+	private JLabel label;
+	/**
+	 * Create the application.
+	 */
+	public GUI() {
+		initialize();
+	}
+
+	/**
+	 * Initialize the contents of the frame.
+	 */
+	private void initialize() {
+
+		
+
+		
+		
+		frame = new JFrame();
+		frame.setBounds(100, 100, 695, 593);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.getContentPane().setLayout(null);
+		
+		label = new JLabel("0");
+		label.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		label.setBounds(26, 31, 131, 42);
+		frame.getContentPane().add(label);
+		
+		JButton btnStart = new JButton("START");
+		btnStart.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+			
+			}
+		});
+		btnStart.setBounds(40, 119, 89, 23);
+		frame.getContentPane().add(btnStart);
+	}
+
+	public void changeText(long time){
+		this.label.setText(String.valueOf(time));
+	}
+}

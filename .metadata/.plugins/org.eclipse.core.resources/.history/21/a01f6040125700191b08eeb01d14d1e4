@@ -1,0 +1,94 @@
+package gui;
+
+import javax.swing.JFrame;
+
+import javax.swing.JLabel;
+
+import java.awt.Font;
+
+import javax.swing.JButton;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+
+public class GUI {
+	public JFrame frame;
+	private JLabel label;
+	private JLabel label_1;
+	private JLabel label_2;
+	/**
+	 * Create the application.
+	 */
+	public GUI() {
+		initialize();
+	}
+
+	/**
+	 * Initialize the contents of the frame.
+	 */
+	private void initialize() {
+		frame = new JFrame();
+		frame.setBounds(100, 100, 695, 593);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.getContentPane().setLayout(null);
+		
+		label = new JLabel("0");
+		label.setHorizontalAlignment(SwingConstants.LEFT);
+		label.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		label.setBounds(280, 0, 150, 50);
+		frame.getContentPane().add(label);
+		
+		JButton btnStart = new JButton("START");
+		btnStart.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+			
+			}
+		});
+		btnStart.setBounds(34, 497, 89, 23);
+		frame.getContentPane().add(btnStart);
+		
+		JLabel lblTime = new JLabel("TIME");
+		lblTime.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblTime.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblTime.setBounds(0, 0, 250, 50);
+		frame.getContentPane().add(lblTime);
+		
+		JLabel lblNewLabel = new JLabel("PROCESSES WAITING");
+		lblNewLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblNewLabel.setBounds(0, 50, 250, 50);
+		frame.getContentPane().add(lblNewLabel);
+		
+		JLabel lblNewLabel_1 = new JLabel("PROCESSES IN MEMORY");
+		lblNewLabel_1.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblNewLabel_1.setBounds(0, 100, 250, 50);
+		frame.getContentPane().add(lblNewLabel_1);
+		
+		label_1 = new JLabel("0");
+		label_1.setHorizontalAlignment(SwingConstants.LEFT);
+		label_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		label_1.setBounds(280, 50, 150, 50);
+		frame.getContentPane().add(label_1);
+		
+		label_2 = new JLabel("0");
+		label_2.setHorizontalAlignment(SwingConstants.LEFT);
+		label_2.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		label_2.setBounds(280, 100, 150, 50);
+		frame.getContentPane().add(label_2);
+	}
+
+	public void changeTextTimer(long time){
+		this.label.setText(String.valueOf(time));
+	}
+	
+	public void changeTextWaiting(int size){
+		this.label_1.setText(String.valueOf(size));
+	}
+	
+	public void changeTextProcessing(int size){
+		this.label_2.setText(String.valueOf(size));
+	}
+}

@@ -1,0 +1,35 @@
+import gui.*;
+import os.*;
+
+public class OS {
+
+	public static void main(String[] args) {
+		GUI window = new GUI();
+		Timer timer = new Timer();
+		PQcallback pq = new ProcessQueue();
+		CPUCycle cpu = new CPU();
+		
+		window.frame.setVisible(true);
+		
+		cpu.register(pq);
+		timer.registerqc(pq);
+		timer.registercc(cpu);
+		timer.startTimer();
+		pq.startPrioritySystem();
+		
+		while (true) {
+			window.changeTextTimer(timer.getTime());
+			window.changeTextWaiting(pq.getINQSIZE());
+			window.changeTextProcessing(pq.getPQ0SIZE()+pq.getPQ1SIZE()+pq.getPQ2SIZE());
+			window.changeTextFinished(pq.getFQSIZE());
+			window.changeTextMemory(pq.getMEMORY());
+			
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+}

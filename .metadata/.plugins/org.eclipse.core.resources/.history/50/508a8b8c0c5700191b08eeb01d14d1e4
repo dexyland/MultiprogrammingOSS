@@ -1,0 +1,11 @@
+package operatingSystem;
+
+public interface PQcallback extends CPUPipe{
+	void wakeUpLTS(long time);
+	void startPrioritySystem();
+}
+
+interface CPUPipe {
+	boolean cpu2queue(Process p);
+	Process queue2cpu();
+}

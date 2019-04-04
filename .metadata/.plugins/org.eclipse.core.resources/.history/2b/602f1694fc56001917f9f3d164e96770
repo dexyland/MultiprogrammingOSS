@@ -1,0 +1,34 @@
+package operatingSystem;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+
+import operatingSystem.*;
+
+/**
+ * 
+ */
+
+/**
+ * @author Dejan
+ *
+ */
+
+
+
+
+
+
+interface CPUPipe {
+	boolean cpu2queue(Process p);
+	Process queue2cpu();
+}
+
+public class OS {
+}
+
+
+
+
+
+

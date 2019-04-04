@@ -1,0 +1,789 @@
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+
+/**
+ * 
+ */
+
+/**
+ * @author Dejan
+ *
+ */
+
+
+interface PQcallback extends CPUPipe{
+	void wakeUpLTS(long time);
+	void startPrioritySystem();
+}
+
+interface CPUCycle {
+	void notifyCPU();
+	void register(PQcallback pq);
+}
+
+interface CPUPipe {
+	boolean cpu2queue(Process p);
+	Process queue2cpu();
+}
+
+public class OS {
+	public static void main(String[] args) {
+		Timer timer = new Timer();
+		PQcallback pq = new processQueue();
+		CPUCycle cpu = new CPU();
+		
+		cpu.register(pq);
+		timer.registerqc(pq);
+		timer.registercc(cpu);
+		timer.startTimer();
+		pq.startPrioritySystem();
+	}
+
+}
+
+class Timer implements Runnable{
+	public long time;
+	private Thread t;
+	private PQcallback callback;
+	private CPUCycle cpucallback;
+	
+	public Timer(){
+		this.time = 0;
+	}
+	
+	public long getTime(){
+		return this.time;
+	}
+	
+	/* no setter for the time since since it runs independently */
+	
+	public void registerqc(PQcallback function){
+		
+		/*  */
+		callback = function;
+		System.out.println("Registered queue callback!");
+	}
+	
+	public void registercc(CPUCycle function){
+		
+		/*  */
+		cpucallback = function;
+		System.out.println("Registered cpu callback!");
+	}
+	
+	public void startTimer(){
+		System.out.println("Starting timer");
+	    if (t == null) {
+	    	t = new Thread (this, "timerThread");
+	        t.start();
+	    }
+	}
+
+	@Override
+	public void run() {
+		this.time = 0;
+		
+		while(true){
+			
+			/* Notify CPU of a new cycle */
+			
+			cpucallback.notifyCPU();
+			
+			/* Each iteration increases time representing the passing of 1mS. */
+			
+			/* Waking up long term scheduler every 100mS */
+			
+			if (time%10 == 0){
+				callback.wakeUpLTS(time);
+			}
+			
+			if (time == 100000){
+				break;
+			}
+			
+			try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			time++;
+		}
+		
+	}
+}
+
+class CPU implements CPUCycle, Runnable {
+
+	private Thread t;
+	private long time;
+
+	private PQcallback callback;
+	
+	private Process current;
+	
+	public CPU() {
+		this.startCPU();
+		this.time = 0;
+		this.current = new Process();
+	}
+	
+	@Override
+	public void run() {
+	}
+	
+	public void startCPU(){
+		System.out.println("Starting CPU.");
+	    if (t == null) {
+	    	t = new Thread (this, "CPUThread");
+	        t.start();
+	    }
+	}
+	
+	public void runCPU(){
+		this.current.setElapsedTime(this.current.getElapsedTime() + 1);
+		System.out.println("Working on: " + this.current.getId() + 
+				                " TIME: " + this.current.getTime() + 
+				        " ELAPSED TIME: " + this.current.getElapsedTime());
+	}
+	
+	private void STS(){
+		if (this.current.getId() != -1) {
+			this.runCPU();
+			
+			if (time - this.current.getEnterTime() == 4 || this.current.getElapsedTime() >= this.current.getTime()) {
+				while(!this.callback.cpu2queue(current));
+				
+				this.current = this.callback.queue2cpu();
+				this.current.setEnterTime(time);
+			}
+		} else {
+			this.current = this.callback.queue2cpu();
+			this.current.setEnterTime(time);
+		}
+	}
+
+	@Override
+	public void notifyCPU() {
+		this.time++;
+		this.STS();
+	}
+
+	@Override
+	public void register(PQcallback pq) {
+		/*  */
+		callback = pq;
+		System.out.println("Registered cpu callback!");
+	}
+}
+
+class Memory implements Runnable{
+	
+	/* Array representing memory. Each location will store ID of a process 
+	 * occupying it, '0' if OS is occupying it or '-1' if location is free. */
+	
+	public int[] locations;
+	
+	/* Used to calculate if more than 80% of memory is full */
+	
+	public int memoryOccupied;
+	
+	private Thread t;
+	
+	public Memory(){
+		
+		/* array of 256 members - 256MB */
+		
+		this.locations = new int[256];
+		
+		/* Initializing memory and storing OS at first 16 locations (16MB) */
+		
+		for (int i = 0; i < 256; i++){
+			if (i <= 15){
+				this.locations[i] = 0;
+			}
+			else {
+				this.locations[i] = -1;
+			}
+			
+		}
+		
+		this.memoryOccupied = 16;
+		this.startMemoryController();
+	}
+	
+	public int memoryAvailable(){
+		return (int)Math.ceil((256.0 - this.memoryOccupied)/256*100);
+	}
+	
+	public void startMemoryController() {
+		System.out.println("Starting memory controller.");
+	    if (t == null) {
+	    	t = new Thread (this, "MemoryThread");
+	        t.start();
+	    }
+	}
+	
+	/* Function used for checking if there is enough memory for the process 
+	 * and writing data of a process into memory if there is enough available */
+	
+	public Boolean retieveBlock(int ID, int memory) {
+		
+		/* Going through memory searching for long enough
+		 * contiguous block of available memory*/
+		
+		for (int i = 16; i < (255 - memory); i++) {
+			if (this.locations[i] == -1) {
+				int flag = 0;
+				
+				/* Checking if next 'memory' locations is available */
+				
+				for (int j = i+1; j < memory; j++){
+					if (this.locations[j] != -1) {
+						
+						/* sets flag to 1 if current location is not available */
+						
+						flag = 1;
+					}
+				}
+				
+				if (flag == 0) {
+					
+					/* Writing ID of process occupying memory locations */
+					
+					for (int k = i; k <= memory; k++){
+						this.locations[k] = ID;
+					}
+					
+					System.out.println("Process " + ID + " acquired memory!");
+					
+					return true;
+				} else {
+					return false;
+				}
+			}
+		}
+		
+		System.out.println("Failed writing DATA! Process: " + ID);
+		
+		return false;
+	}
+	
+	public Boolean requestMemory(int ID, int memory) {
+		if (this.memoryOccupied + memory > 256) {
+			System.out.println("Not enough memory available!");
+			
+			return false;
+		} else if (retieveBlock(ID, memory)) {
+			System.out.println("Memory request satisfied!");
+			System.out.println("Memory available: " + this.memoryAvailable() + "%");
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public void freeMemory(int ID) {
+		System.out.println("Deleting job " + ID + " from memory");
+		for (int i = 16; i < 256; i++) {
+			if (this.locations[i] == ID) {
+				this.locations[i] = -1;
+				this.memoryOccupied--;
+			}
+		}
+		
+		System.out.println("Memory occupied: " + this.memoryOccupied);
+		System.out.println("Process " + ID + " removed from memory");
+		System.out.println("Memory available: " + this.memoryAvailable() + "%");
+	}
+
+	@Override
+	public void run() {
+		while(true){
+			///System.out.println("Memory Occupied: " + this.memoryOccupied);
+		}
+		
+	}
+}
+
+class Process {
+	private int id;
+	private String status;
+	private int memory;
+	private int additionalMemory;
+	private int time;
+	private long enterTime;
+	private int timeElapsed;
+	
+	public Process(){
+		this.id = -1;
+		this.status = "waiting";
+		this.memory = -1;
+		this.additionalMemory = -1;
+		this.time = -1;
+		this.enterTime = -1;
+		this.timeElapsed = 0;
+	}
+	
+	public Process(int id, int memory, int addmem, int time){
+		this.id = id;
+		this.status = "waiting";
+		this.memory = memory;
+		this.additionalMemory = addmem;
+		this.time = time;
+		this.enterTime = 0;
+		this.timeElapsed = 0;
+	}
+	
+	public int getId(){
+		return this.id;
+	}
+	
+	public String getStatus(){
+		return this.status;
+	}
+	
+	public int getMemory(){
+		return this.memory;
+	}
+	
+	public int getAdditionalMemory(){
+		return this.additionalMemory;
+	}
+	
+	public int getTime(){
+		return this.time;
+	}
+	
+	public long getEnterTime(){
+		return this.enterTime;
+	}
+	
+	public int getElapsedTime(){
+		return this.timeElapsed;
+	}
+
+	public void setStatus(String status){
+		this.status = status;
+	}
+	
+	public void setId(int id){
+		this.id = id;
+	}
+	
+	public void setPriority(String status){
+		this.status = status;
+	}
+	
+	public void setMemory(int memory){
+		this.memory = memory;
+	}
+	
+	public void setAdditionalMemory(int memory){
+		this.additionalMemory = memory;
+	}
+	
+	public void setTime(int time){
+		this.time = time;
+	}
+	
+	public void setEnterTime(long time){
+		this.enterTime = time;
+	}
+	
+	public void setElapsedTime(int time){
+		this.timeElapsed = time;
+	}
+	
+	public void printProcess(){
+		System.out.println("Process: " + this.getId());
+		System.out.println("Memory required: " + this.getMemory());
+		System.out.println("Time required: " + this.getTime());
+		System.out.println("Status: " + this.getStatus());
+		System.out.println("Time elapsed: " + this.getElapsedTime());
+	}
+}
+
+
+/* This class implements multiple level feedback queue which receives jobs 
+ * from long term scheduler which are prioritized and stored in proper queue. 
+ * short term scheduler takes first job from priority 0 queue if there is any.
+ * System periodically takes care of upgrading and degrading processes. */
+
+class processQueue implements PQcallback, Runnable{
+	
+	/**/
+	
+	private Memory memoryController;
+	
+	/* Priority queues that will be used for storing processes */
+	
+	/* Priority queues */
+	
+	public ArrayList<Process> priorityQueue0;
+	public ArrayList<Process> priorityQueue1;
+	public ArrayList<Process> priorityQueue2;
+
+	/* Queue for storing jobs that require memory from long term scheduler */
+	
+	public ArrayList<Process> noMemoryQueue;
+	
+	/* Queue for storing finished jobs */
+	public ArrayList<Process> finishedQueue;
+	
+	/* Thread class handling threading operations */
+	
+	private Thread t;
+	
+	/* Allow short term scheduler to get a job from queue. Prevents data race between queue 
+	 * scheduler which upgrades and degrades processes priority and short term scheduler.*/
+	
+	private boolean queueAvailable;
+	
+	private int offset;
+	
+	/* class processQueue constructor */
+	
+	public processQueue(){
+		
+		/* Creating memory controller */
+		
+		memoryController = new Memory();
+		
+		/* Creating priority queues that will be used for storing processes */
+		
+		this.priorityQueue0 = new ArrayList<Process>();
+		this.priorityQueue1 = new ArrayList<Process>();
+		this.priorityQueue2 = new ArrayList<Process>();
+		this.noMemoryQueue = new ArrayList<Process>();
+		this.finishedQueue = new ArrayList<Process>();
+		this.queueAvailable = true;
+		this.offset = 0;
+
+		System.out.println("Created priority queues!");
+		
+		/* Creating processes and adding them to no memory queue */
+		
+		createProcesses();
+		
+		System.out.println("Created processes.");
+	}
+	
+	/* LTS wakes up every 100mS. It check for available processes requesting memory */
+	
+	public void wakeUpLTS(long time) {
+		if (time%100 != 0){
+			printQueueDetails();
+			System.out.println("Checking for jobs that need to be degraded!");
+			
+			this.checkJobs();
+		} else {
+			jobUpgrader();
+			
+			System.out.println("LTS woke up!");
+			System.out.println("Checking for processes waiting for memory...");
+			
+			/* Checking if there are any jobs in the queue waiting for memory */
+			int jobsNum = this.noMemoryQueue.size();
+			int jobsAdded = 0;
+			
+			System.out.println("Nomemory queue size: " + jobsNum);
+			
+			for (int i = 0; i < jobsNum; i++) {
+				
+				/* Going through all processes waiting for memory and giving them memory
+				 * if there any available and putting them into priority queue 0 */
+				
+				if (!this.noMemoryQueue.isEmpty()) {
+					
+					/* If less then 80% of memory is occupied and acquiring memory is
+					 * successful process will be put into a queue */
+				
+					if (this.memoryController.memoryAvailable() > 20) {
+						Process job = new Process();
+						
+						/* Removes the process from queue */
+						
+						job = this.noMemoryQueue.get(0);
+						
+						if (this.memoryController.requestMemory(job.getId(), job.getMemory())) {
+							
+							/* Sets queues status to unavailable so the job
+							 * can be added to queue without data race */
+							
+							this.queueAvailable = false;
+							
+							/* Adding a job to a priority queue0 */
+							
+							this.priorityQueue0.add(job);
+							jobsAdded++;
+							this.memoryController.memoryOccupied += job.getMemory();
+							this.noMemoryQueue.remove(0);
+							
+							System.out.println("LTS added job to priority queue '0'");
+							System.out.println("Process " + job.getId() + " entered queue0");
+							
+	
+							
+							/* Sets queues status back to available 
+							 * so the jobs can be taken from queue */ 
+							
+							this.queueAvailable = true;
+						}
+					}
+				}
+			}
+			
+			if (jobsAdded == 1) {
+				System.out.println("LTS added 1 job in this season");  
+			} else {
+				System.out.println("LTS added " + jobsAdded + " jobs in this season.");
+			}
+			
+			System.out.println("LTS going to sleep.");
+		}
+	}
+	
+	public void startPrioritySystem() {
+		System.out.println("Starting priority system.");
+	    if (t == null) {
+	    	t = new Thread (this, "PQsystemThread");
+	        t.start();
+	    }
+	}
+	
+	
+	public void createProcesses() {
+		for (int i = 0; i < 10; i++) {
+			Process p = new Process(i*37, i*7%16, 0, i*3%8 + 1);
+			this.addJob(p);
+		}
+	}
+	
+	/* Processes without memory are added to input queue
+	 * waiting to get memory from long term scheduler.
+	 * This function is executed to before simulation 
+	 * to load all jobs into queue waiting to get memory
+	 * from long term scheduler.  */
+	
+	public void addJob(Process P) {
+		System.out.println("Process " + P.getId() + " added to input queue.");
+		this.noMemoryQueue.add(P);
+	}
+	
+	/* Short term scheduler takes a job from a queue if accessing queues is enabled. 
+	 * Priority queue system can disable access when upgrading and degrading processes. */
+	
+	public Process getJob() {
+		Process retProcess = null;
+		
+		/* If access to queues is enabled, job is taking following priority rule. */
+		
+		if (this.queueAvailable) {
+			if (!this.priorityQueue0.isEmpty()) {
+				retProcess = this.priorityQueue0.remove(0);
+				System.out.println("Job taken from queue 0!");
+			} else if (!this.priorityQueue1.isEmpty()) {
+				retProcess = this.priorityQueue1.remove(0);
+				System.out.println("Job taken from queue 1!");
+			} else if (!this.priorityQueue2.isEmpty()) {
+				retProcess = this.priorityQueue2.remove(0);
+				System.out.println("Job taken from queue 2!");
+			} else {
+				System.out.println("Priority queues are empty. No jobs to take!");
+			}
+		} else {
+			System.out.println("Access to queues denied!");
+		}
+		
+		return retProcess;
+	}
+	
+	/* Queue scheduler - manages job priorities  */
+	
+	private void checkJobs(){
+		if (this.queueAvailable) {
+			
+			/* Checking if some job from queue1 needs to be degraded */
+			
+			if (!this.priorityQueue1.isEmpty()) {
+				int size = this.priorityQueue1.size();
+				System.out.println("Queue1 SIZE: " + size);
+				
+				for (int i = 0; i < size; i++) {
+					if (this.priorityQueue1.get(i).getElapsedTime() > offset + 5 || this.priorityQueue1.get(i).getElapsedTime() < 9) {
+						this.priorityQueue2.add(this.priorityQueue1.get(i));
+						
+						System.out.println("Job " + this.priorityQueue1.get(i).getId() + " degraded from queue 1 to 2");
+						
+					}
+				}
+				
+				/* Removing duplicate processes from queue1 - The ones that
+				 * have been transfered to queue2. */
+				
+				for (int j = 0; j < this.priorityQueue2.size(); j++) {
+					for (int k = 0; k < this.priorityQueue1.size(); k++) {
+						if (this.priorityQueue2.get(j).getId() == this.priorityQueue1.get(k).getId()) {
+							this.priorityQueue1.remove(k);
+							
+							break;
+						}
+					}
+				}
+			} else {
+				System.out.println("Queue1 empty.");
+			}
+			
+			/* Checking if some job from queue0 needs to be degraded */
+			
+			if (!this.priorityQueue0.isEmpty()) {
+				int size = this.priorityQueue0.size();
+				
+				for (int i = 0; i < size; i++) {
+					if (this.priorityQueue0.get(i).getElapsedTime() > offset + 0 || this.priorityQueue0.get(i).getElapsedTime() < 5) {
+						this.priorityQueue1.add(this.priorityQueue0.get(i));
+						
+						System.out.println("Job " + this.priorityQueue0.get(i).getId() + " degraded from queue 0 to 1");
+					}
+				}
+				
+				/* Removing duplicate processes from queue0 - The ones that
+				 * have been transfered to queue1. */
+				
+				for (int j = 0; j < this.priorityQueue1.size(); j++) {
+					for (int k = 0; k < this.priorityQueue0.size(); k++) {
+						if (this.priorityQueue1.get(j).getId() == this.priorityQueue0.get(k).getId()) {
+							this.priorityQueue0.remove(k);
+							
+							break;
+						}
+					}
+				}
+			}  else {
+				System.out.println("Queue0 empty.");
+			}
+		} else {
+			System.out.println("Access to queues denied!");
+		}
+	}
+	
+	/* Periodically jobs need to be upgraded so we do not end up with empty queues 0 and 
+	 * 1 and all processes in queue 2 since jobs are executed sequentially in queue 2. */
+	
+	private void jobUpgrader() {
+		int topTime = 0;
+		int size;
+		
+		System.out.println("Job upgrader started.");
+		
+		if (this.queueAvailable) {
+			this.queueAvailable = false;
+			
+			if (!this.priorityQueue1.isEmpty()) {
+				size = this.priorityQueue1.size();
+				
+				for (int i = 0; i < size; i++) {
+					if (this.priorityQueue1.get(i).getElapsedTime() > topTime) {
+						topTime = this.priorityQueue1.get(i).getElapsedTime();
+					}
+				}
+				
+				for (int j = 0; j < size; j++) {
+					System.out.println("Job: " + this.priorityQueue1.get(0).getId() + " upgraded from queue 1 to 0");
+					this.priorityQueue0.add(this.priorityQueue1.remove(0));
+				}
+				
+				if (topTime > offset) {
+					offset = topTime;
+				}
+				
+				System.out.println(size + " jobs upgraded from queue1 to queue0");
+			}
+			
+			topTime = 0;
+			
+			if (!this.priorityQueue2.isEmpty()) {
+				size = this.priorityQueue2.size();
+				
+				for (int i = 0; i < size; i++) {
+					if (this.priorityQueue2.get(i).getElapsedTime() > topTime) {
+						topTime = this.priorityQueue2.get(i).getElapsedTime();
+					}
+				}
+				
+				for (int j = 0; j < size; j++) {
+					System.out.println("Job: " + this.priorityQueue2.get(0).getId() + " upgraded from queue 2 to 0");
+					this.priorityQueue0.add(this.priorityQueue2.remove(0));
+				}
+				
+				
+				if (topTime > offset) {
+					offset = topTime;
+				}
+				
+				System.out.println(size + " jobs upgraded from queue2 to queue0");
+			}
+		}
+		
+		this.queueAvailable = true;
+		System.out.println("Job upgrader going to sleep");		
+	}
+	
+	/* Print queue details */
+	
+	private void printQueueDetails() {
+		System.out.println("Priority queues information:");
+		System.out.println("Jobs waiting: " + noMemoryQueue.size());
+		System.out.println("Queue0: " + this.priorityQueue0.size() + " jobs");
+		System.out.println("Queue1: " + this.priorityQueue1.size() + " jobs");
+		System.out.println("Queue2: " + this.priorityQueue2.size() + " jobs");
+		System.out.println("FINISHED: " + this.finishedQueue.size() + " jobs");
+		
+		int total = this.noMemoryQueue.size() + this.priorityQueue0.size()
+			     + this.priorityQueue1.size() + this.priorityQueue2.size()
+			     + this.finishedQueue.size();
+		
+		System.out.println("Total jobs in queues: " + total);
+	}
+
+	@Override
+	public void run() {
+		System.out.println("Priority system active!");
+		
+	}
+
+	@Override
+	public boolean cpu2queue(Process p) {
+		if (this.queueAvailable) {
+			if (p.getTime() <= p.getElapsedTime()) {
+				p.setStatus("terminated");
+				
+				this.memoryController.freeMemory(p.getId());
+				
+				this.finishedQueue.add(p);
+			} else {
+				this.priorityQueue0.add(p);
+			}
+			
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	@Override
+	public Process queue2cpu() {
+		// TODO Auto-generated method stub
+		if (this.queueAvailable) {
+			if (!this.priorityQueue0.isEmpty()) {
+				return this.priorityQueue0.remove(0);
+			} else {
+				return new Process();
+			}
+		} else {
+			return new Process();
+		}
+	}
+}

@@ -1,0 +1,24 @@
+import gui.*;
+import os.*;
+
+public class OS {
+
+	public static void main(String[] args) {
+		GUI window = new GUI();
+		Timer timer = new Timer();
+		PQcallback pq = new ProcessQueue();
+		CPUCycle cpu = new CPU();
+		
+		window.frame.setVisible(true);
+		
+		cpu.register(pq);
+		timer.registerqc(pq);
+		timer.registercc(cpu);
+		timer.startTimer();
+		pq.startPrioritySystem();
+		
+		while (true) {
+			window.changeText(timer.getTime());
+		}
+	}
+}
